@@ -68,16 +68,12 @@ Citizens and Gram Panchayats report localized grievances and infrastructural bot
 
 
 
-### 6. 🗺️ 24-District GIS Telemetry Map (`/map`)
-- **Interactive Geospatial Hotspots**: Leaflet-powered GIS mapping displaying challenge density across all 24 districts of Jharkhand.
-- **Simulated IoT Hydro-Telemetry**: Live sensor telemetry feeds (water depth, pH, dissolved oxygen, solar MPPT battery levels).
-
-### 7. 🌐 Full Bilingual Support (Google Translate Integration)
+6. 🌐 Full Bilingual Support (Google Translate Integration)
 - Instant, seamless one-click switching between **English** and **हिंदी (Hindi)** powered by a styled, integrated translation engine.
 
 ---
 
-## 🎯 10 Canonical Problem Domains
+## 🎯 10+ Canonical Problem Domains
 
 | # | Domain | Typical Innovation Focus |
 |---|--------|--------------------------|
@@ -176,7 +172,7 @@ Jharkhand-Pragati-Setu/
 
 ### 2. Clone the Repository
 ```bash
-git clone https://github.com/PrithvijitBose/Pragati-Setu.git
+git clone https://github.com/PrithvijitBose/Sih-2026.git
 cd Jharkhand-Pragati-Setu
 ```
 
