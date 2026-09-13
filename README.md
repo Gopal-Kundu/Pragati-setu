@@ -1,14 +1,6 @@
 # 🌉 Jharkhand Pragati Setu (झारखंड प्रगति सेतु)
 ### Smart India Hackathon (SIH 2026) &bull; Societal Problem-to-Innovation Ecosystem Platform
 
-[![Platform](https://img.shields.io/badge/Platform-Jharkhand_Pragati_Setu-047857.svg?style=for-the-badge&logo=shield)](https://github.com/Gopal-Kundu/Jharkhand-Pragati-Setu)
-[![React](https://img.shields.io/badge/React_19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
-[![Node.js](https://img.shields.io/badge/Node.js_Express-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
-[![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
-[![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-
----
-
 ## 📌 Executive Overview
 
 **Jharkhand Pragati Setu** is an end-to-end digital collaboration and governance platform engineered for the **State of Jharkhand** to bridge the gap between grassroots societal challenges, higher education institutions (HEIs), industry corporate social responsibility (CSR) partners, and government administration.
@@ -184,7 +176,7 @@ Jharkhand-Pragati-Setu/
 
 ### 2. Clone the Repository
 ```bash
-git clone https://github.com/Gopal-Kundu/Jharkhand-Pragati-Setu.git
+git clone https://github.com/PrithvijitBose/Pragati-Setu.git
 cd Jharkhand-Pragati-Setu
 ```
 
