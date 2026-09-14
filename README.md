@@ -1,6 +1,19 @@
 # 🌉 Jharkhand Pragati Setu (झारखंड प्रगति सेतु)
 ### Smart India Hackathon (SIH 2026) &bull; Societal Problem-to-Innovation Ecosystem Platform
 
+---
+
+### 🔑 Demo Login Credentials
+
+| Stakeholder / Role | Email | Password |
+| :--- | :--- | :--- |
+| **Citizen** | `citizen@sih2026.gov.in` | `Citizen@2026` |
+| **University** | `university@sih2026.gov.in` | `Univ@2026` |
+| **Industry CSR** | `industry@sih2026.gov.in` | `Industry@2026` |
+| **Government** | `govt@sih2026.gov.in` | `Govt@2026` |
+
+---
+
 ## 📌 Executive Overview
 
 **Jharkhand Pragati Setu** is an end-to-end digital collaboration and governance platform engineered for the **State of Jharkhand** to bridge the gap between grassroots societal challenges, higher education institutions (HEIs), industry corporate social responsibility (CSR) partners, and government administration.
