@@ -14,6 +14,7 @@ import {
 import { setActiveRole as setReduxActiveRole } from '../store/slices/authSlice';
 import { setActiveView as setReduxActiveView } from '../store/slices/uiSlice';
 import { aiApi } from '../services/aiApi';
+import { changeGoogleLanguage, getSelectedLanguageFromCookie } from '../utils/googleTranslate';
 
 const StateContext = createContext();
 
@@ -30,18 +31,22 @@ export function StateProvider({ children }) {
     }
   };
 
-  // 1. Language: 'en' | 'hi'
+  // 1. Language: Strictly fetched from cookie across all pages
   const [lang, setLangState] = useState(() => {
-    if (typeof document !== 'undefined' && document.cookie.includes('googtrans=/en/hi')) return 'hi';
-    return (typeof localStorage !== 'undefined' && localStorage.getItem('app_lang')) || 'en';
+    return getSelectedLanguageFromCookie() || 'en';
   });
 
   const setLang = (newLang) => {
     setLangState(newLang);
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('app_lang', newLang);
-    }
+    changeGoogleLanguage(newLang);
   };
+
+  useEffect(() => {
+    const saved = getSelectedLanguageFromCookie();
+    if (saved && saved !== 'en') {
+      changeGoogleLanguage(saved);
+    }
+  }, []);
 
   // 2. Active Role: 'citizen' | 'panchayat' | 'government' | 'university' | 'industry' | 'public'
   const [activeRole, setActiveRoleState] = useState(reduxAuth.activeRole || 'citizen');

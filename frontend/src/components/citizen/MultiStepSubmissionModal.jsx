@@ -116,6 +116,17 @@ export default function MultiStepSubmissionModal() {
   const [aiPreview, setAiPreview] = useState(null);
   const [submissionResult, setSubmissionResult] = useState(null);
 
+  // Populate form if data was pre-extracted by Bhashini Voice Assistant
+  React.useEffect(() => {
+    if (prefilledGrievanceData) {
+      setFormData(prev => ({
+        ...prev,
+        ...prefilledGrievanceData
+      }));
+      setPrefilledGrievanceData(null);
+    }
+  }, [prefilledGrievanceData, setPrefilledGrievanceData]);
+
   if (!isSubmitModalOpen) return null;
 
   const currentDistrictObj = districts.find(d => d.id === formData.district) || districts[0];
@@ -129,17 +140,6 @@ export default function MultiStepSubmissionModal() {
       block: dObj && dObj.blocks ? dObj.blocks[0] : ''
     }));
   };
-
-  // Populate form if data was pre-extracted by Bhashini Voice Assistant
-  React.useEffect(() => {
-    if (prefilledGrievanceData) {
-      setFormData(prev => ({
-        ...prev,
-        ...prefilledGrievanceData
-      }));
-      setPrefilledGrievanceData(null);
-    }
-  }, [prefilledGrievanceData, setPrefilledGrievanceData]);
 
   const handleOpenBhashiniVoice = () => {
     setIsBhashiniModalOpen(true);

@@ -185,7 +185,7 @@ Jharkhand-Pragati-Setu/
 
 ### 2. Clone the Repository
 ```bash
-git clone https://github.com/PrithvijitBose/Sih-2026.git
+git clone https://github.com/Gopal-Kundu/Pragati-setu.git
 cd Jharkhand-Pragati-Setu
 ```
 

@@ -95,11 +95,13 @@ export function useBhashiniVoice({ language = 'hi', speechCode = 'hi-IN' } = {})
     setVolume(0);
   }, []);
 
-  // Start Listening & Recording
-  const startListening = useCallback(async () => {
+  // Start Listening & Recording (Preserves existing transcript)
+  const startListening = useCallback(async (clearExisting = false) => {
     cleanup();
     setError(null);
-    setTranscript('');
+    if (clearExisting) {
+      setTranscript('');
+    }
     setInterimTranscript('');
     setAudioBase64(null);
     setRecordingDuration(0);

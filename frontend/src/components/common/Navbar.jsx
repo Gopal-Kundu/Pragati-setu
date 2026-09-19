@@ -3,17 +3,16 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAppState } from '../../context/StateContext';
 import { useSelector, useDispatch } from 'react-redux';
 import { logoutUser, resetAuthState } from '../../store/slices/authSlice';
-import { changeGoogleLanguage } from '../../utils/googleTranslate';
 import { notificationApi } from '../../services/notificationApi';
 import NotificationsModal from './NotificationsModal';
-import { LogIn, LogOut, UserCheck, Menu, X, Globe, User, Bell, Mic } from 'lucide-react';
+import { LogIn, LogOut, UserCheck, Menu, X, Globe, User, Bell } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Navbar() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const authState = useSelector((state) => state.auth);
-  const { lang = 'en', setLang = () => {}, setIsBhashiniModalOpen } = useAppState() || {};
+  const { lang = 'en', setLang = () => {} } = useAppState() || {};
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Notifications State for all roles
@@ -50,11 +49,6 @@ export default function Navbar() {
     setIsNotificationsOpen(true);
     setUnreadCount(0);
     notificationApi.markAllRead().catch(() => {});
-  };
-
-  const handleLanguageChange = (newLang) => {
-    setLang(newLang);
-    changeGoogleLanguage(newLang);
   };
 
   const handleLogout = async () => {
@@ -116,40 +110,16 @@ export default function Navbar() {
 
           {/* 2. Right Controls (Desktop & Tablet) */}
           <div className="hidden sm:flex items-center space-x-3 sm:space-x-4">
-            {/* Hindi / English Language Toggle */}
-            <div className="flex items-center bg-slate-100 rounded-xl p-1 text-xs font-semibold border border-slate-200 shadow-inner">
-              <button
-                onClick={() => handleLanguageChange('en')}
-                className={`px-3 py-1 rounded-lg cursor-pointer transition-all ${
-                  lang === 'en' 
-                    ? 'bg-emerald-600 text-white font-bold shadow-sm' 
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                English
-              </button>
-              <button
-                onClick={() => handleLanguageChange('hi')}
-                className={`px-3 py-1 rounded-lg cursor-pointer transition-all ${
-                  lang === 'hi' 
-                    ? 'bg-emerald-600 text-white font-bold shadow-sm' 
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                हिंदी
-              </button>
-            </div>
-
-            {/* Bhashini Voice Assistant Action Button */}
+            {/* Language Selector Button */}
             <button
-              onClick={() => setIsBhashiniModalOpen && setIsBhashiniModalOpen(true)}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-xs shadow-sm shadow-emerald-700/20 hover:shadow-md transition-all cursor-pointer group"
-              title="Bhashini Voice Grievance (बोलकर समस्या दर्ज करें)"
+              onClick={() => navigate('/lan')}
+              className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 text-xs font-semibold border border-slate-200 hover:border-emerald-300 transition-all cursor-pointer shadow-sm"
+              title="Select Language"
             >
-              <Mic className="w-3.5 h-3.5 text-amber-300 animate-pulse group-hover:scale-110 transition-transform" />
-              <span className="hidden md:inline">भाषिणी Voice</span>
-              <span className="md:hidden">Voice</span>
+              <Globe className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Language</span>
             </button>
+
 
             {/* Global Notification Bell (For all authenticated roles) */}
             {authState.isAuthenticated && authState.user && (
@@ -216,24 +186,16 @@ export default function Navbar() {
               </button>
             )}
 
-            {/* Compact Lang Switch */}
+            {/* Compact Language Button */}
             <button
-              onClick={() => handleLanguageChange(lang === 'en' ? 'hi' : 'en')}
-              className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 text-xs font-bold shadow-inner"
-              title="Switch Language"
+              onClick={() => navigate('/lan')}
+              className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-emerald-50 border border-slate-200 text-slate-800 text-xs font-bold transition-colors cursor-pointer"
+              title="Select Language"
             >
               <Globe className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{lang === 'en' ? 'HI' : 'EN'}</span>
+              <span>Language</span>
             </button>
 
-            {/* Mobile Bhashini Voice Button */}
-            <button
-              onClick={() => setIsBhashiniModalOpen && setIsBhashiniModalOpen(true)}
-              className="p-2 rounded-xl bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 transition-colors cursor-pointer"
-              title="Bhashini Voice Grievance"
-            >
-              <Mic className="w-3.5 h-3.5 text-amber-300" />
-            </button>
 
             {/* Mobile Auth Button */}
             {authState.isAuthenticated && authState.user ? (

@@ -14,6 +14,7 @@ import UniversityPage from './pages/UniversityPage';
 import IndustryPage from './pages/IndustryPage';
 import MapPage from './pages/MapPage';
 import AuthPage from './pages/AuthPage';
+import LanguagePage from './pages/LanguagePage';
 
 function AppRouter() {
   const dispatch = useDispatch();
@@ -75,6 +76,7 @@ function AppRouter() {
 
   return (
     <Routes>
+      <Route path="/lan" element={<LanguagePage />} />
       <Route path="/" element={<MainLayout />}>
         <Route
           index

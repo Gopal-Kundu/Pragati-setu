@@ -103,7 +103,7 @@ const DOMAIN_ICONS = {
 
 
 export default function CommunityPortal() {
-  const { setIsBhashiniModalOpen } = useAppState() || {};
+  const { setIsBhashiniModalOpen, prefilledGrievanceData, setPrefilledGrievanceData } = useAppState() || {};
   const authState = useSelector((state) => state.auth);
   const authUser = authState?.user;
   const isAuthenticated = authState?.isAuthenticated;
@@ -176,6 +176,37 @@ export default function CommunityPortal() {
       setUnreadCount(0);
     }
   }, [isAuthenticated, authUser]);
+
+  // Populate form if data was pre-extracted by Voice Assistant
+  useEffect(() => {
+    if (prefilledGrievanceData) {
+      const matchedDistrict = JHARKHAND_DISTRICTS.find(
+        (d) => d.toLowerCase() === (prefilledGrievanceData.districtName || prefilledGrievanceData.district || '').toLowerCase()
+      ) || prefilledGrievanceData.district || 'Ranchi';
+
+      setFormData((prev) => ({
+        ...prev,
+        title: prefilledGrievanceData.title || prev.title,
+        description: prefilledGrievanceData.narrative || prefilledGrievanceData.description || prev.description,
+        district: matchedDistrict,
+        block: prefilledGrievanceData.block || prev.block,
+        panchayat: prefilledGrievanceData.panchayat || prev.panchayat
+      }));
+
+      setIsFormOpen(true);
+      if (setPrefilledGrievanceData) {
+        setPrefilledGrievanceData(null);
+      }
+
+      // Smoothly scroll down to the form
+      setTimeout(() => {
+        const formEl = document.getElementById('community-problem-form');
+        if (formEl) {
+          formEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 150);
+    }
+  }, [prefilledGrievanceData, setPrefilledGrievanceData]);
 
   // Notification button click handler: clears unread count to 0, updates UI, no toaster, opens modal
   const handleOpenNotifications = () => {
@@ -337,8 +368,8 @@ export default function CommunityPortal() {
             className="flex items-center space-x-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-teal-700 to-emerald-700 hover:from-teal-800 hover:to-emerald-800 text-white font-bold text-sm shadow-md shadow-teal-700/20 transition-all hover:scale-105 cursor-pointer whitespace-nowrap"
             title="Bhashini Voice Grievance (बोलकर समस्या दर्ज करें)"
           >
-            <Mic className="w-5 h-5 text-amber-300 animate-pulse" />
-            <span>भाषिणी Voice Report</span>
+            <Mic className="w-5 h-5 text-amber-300" />
+            <span>Voice Report</span>
           </button>
 
           {/* Report a Problem Action */}
@@ -354,7 +385,7 @@ export default function CommunityPortal() {
 
       {/* 2. Problem Submission Form (Schema-Conforming with AI Domain Classification) */}
       {isFormOpen && (
-        <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xl shadow-slate-200/50 space-y-6 animate-in fade-in">
+        <div id="community-problem-form" className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xl shadow-slate-200/50 space-y-6 animate-in fade-in">
           <div className="flex items-center justify-between pb-4 border-b border-slate-100">
             <div className="flex items-center space-x-2">
               <PlusCircle className="w-5 h-5 text-emerald-600" />
