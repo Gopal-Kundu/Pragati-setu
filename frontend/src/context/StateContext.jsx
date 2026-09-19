@@ -53,6 +53,8 @@ export function StateProvider({ children }) {
   const [selectedClusterId, setSelectedClusterIdState] = useState(reduxEcosystem.selectedProblemId || 'JH-WTR-1042');
   const [activeDistrictId, setActiveDistrictId] = useState('khunti');
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+  const [isBhashiniModalOpen, setIsBhashiniModalOpen] = useState(false);
+  const [prefilledGrievanceData, setPrefilledGrievanceData] = useState(null);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [isAuditDrawerOpen, setIsAuditDrawerOpen] = useState(false);
 
@@ -331,6 +333,10 @@ export function StateProvider({ children }) {
         notifications: notifications || [],
         isSubmitModalOpen,
         setIsSubmitModalOpen,
+        isBhashiniModalOpen,
+        setIsBhashiniModalOpen,
+        prefilledGrievanceData,
+        setPrefilledGrievanceData,
         isAssistantOpen,
         setIsAssistantOpen,
         isAuditDrawerOpen,
@@ -384,6 +390,10 @@ export function useAppState() {
       setSelectedClusterId: () => {},
       isSubmitModalOpen: false,
       setIsSubmitModalOpen: () => {},
+      isBhashiniModalOpen: false,
+      setIsBhashiniModalOpen: () => {},
+      prefilledGrievanceData: null,
+      setPrefilledGrievanceData: () => {},
       isAssistantOpen: false,
       setIsAssistantOpen: () => {},
       problems: [],

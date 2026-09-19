@@ -37,7 +37,10 @@ export default function MultiStepSubmissionModal() {
     submitCitizenProblem, 
     setSelectedClusterId,
     setActiveView,
-    lang 
+    lang,
+    setIsBhashiniModalOpen,
+    prefilledGrievanceData,
+    setPrefilledGrievanceData
   } = useAppState();
 
   const [step, setStep] = useState(1);
@@ -127,15 +130,19 @@ export default function MultiStepSubmissionModal() {
     }));
   };
 
-  const handleVoiceSimulation = () => {
-    setIsRecording(true);
-    setTimeout(() => {
-      setIsRecording(false);
+  // Populate form if data was pre-extracted by Bhashini Voice Assistant
+  React.useEffect(() => {
+    if (prefilledGrievanceData) {
       setFormData(prev => ({
         ...prev,
-        narrative: prev.narrative ? prev.narrative + ' Also, drinking water and irrigation water scarcity during summer.' : 'Drinking water and irrigation water scarcity during summer.'
+        ...prefilledGrievanceData
       }));
-    }, 1500);
+      setPrefilledGrievanceData(null);
+    }
+  }, [prefilledGrievanceData, setPrefilledGrievanceData]);
+
+  const handleOpenBhashiniVoice = () => {
+    setIsBhashiniModalOpen(true);
   };
 
   // Run AI analysis on step 4 transition via backend AI API (Only Assigns Domain & Checks Location Duplicates)
@@ -407,13 +414,12 @@ export default function MultiStepSubmissionModal() {
                       </label>
                       <button
                         type="button"
-                        onClick={handleVoiceSimulation}
-                        className={`flex items-center space-x-1 text-[11px] font-bold px-2 py-0.5 rounded cursor-pointer transition-colors ${
-                          isRecording ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                        }`}
+                        onClick={handleOpenBhashiniVoice}
+                        className="flex items-center space-x-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border border-emerald-300 transition-all cursor-pointer shadow-xs group"
+                        title="Speak in any Indian language with Bhashini AI"
                       >
-                        <Mic className="w-3 h-3 text-red-500" />
-                        <span>{isRecording ? 'Listening in Hindi...' : 'Voice Assist (बोलकर दर्ज करें)'}</span>
+                        <Mic className="w-3.5 h-3.5 text-emerald-700 group-hover:scale-110 transition-transform" />
+                        <span>भाषिणी Voice Assist (बोलकर फॉर्म भरें)</span>
                       </button>
                     </div>
                     <textarea

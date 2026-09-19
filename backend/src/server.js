@@ -13,6 +13,7 @@ import analyticsRoutes from './routes/analyticsRoutes.js';
 import universityRoutes from './routes/universityRoutes.js';
 import industryRoutes from './routes/industryRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import bhashiniRoutes from './routes/bhashiniRoutes.js';
 
 // Load environment variables from .env
 dotenv.config();
@@ -99,6 +100,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/universities', universityRoutes);
 app.use('/api/industry', industryRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/bhashini', bhashiniRoutes);
 
 // 6. Global 404 Route Handler
 app.use((req, res) => {
@@ -124,24 +126,21 @@ app.use((err, req, res, next) => {
 const startServer = async () => {
   try {
     console.log('[Startup] Connecting to MongoDB database...');
-    // Await MongoDB connection before binding to port
     await connectDB();
-
-    // Start listening on HTTP port only when not in serverless environment
-    if (process.env.VERCEL !== '1') {
-      app.listen(PORT, () => {
-        console.log(`=======================================================`);
-        console.log(`🚀 SIH 2026 Backend Running on http://localhost:${PORT}`);
-        console.log(`⚡ AI Engine: Active`);
-        console.log(`🔒 Auth: Secure HTTP-Only Cookies enabled`);
-        console.log(`=======================================================`);
-      });
-    }
   } catch (error) {
-    console.error('[Fatal Startup Error]: Failed to start backend server:', error.message);
-    if (process.env.VERCEL !== '1') {
-      process.exit(1);
-    }
+    console.warn('[Startup Notice] MongoDB offline or connecting:', error.message);
+    console.warn('[Startup Notice] Backend running in resilient mode. Database operations will reconnect once MongoDB is available.');
+  }
+
+  // Start listening on HTTP port
+  if (process.env.VERCEL !== '1') {
+    app.listen(PORT, () => {
+      console.log(`=======================================================`);
+      console.log(`🚀 SIH 2026 Backend Running on http://localhost:${PORT}`);
+      console.log(`⚡ AI & Bhashini Engine: Active`);
+      console.log(`🔒 Auth: Secure HTTP-Only Cookies enabled`);
+      console.log(`=======================================================`);
+    });
   }
 };
 

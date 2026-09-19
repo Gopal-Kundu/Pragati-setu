@@ -3,6 +3,7 @@ import { Outlet, useNavigate, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import Navbar from '../common/Navbar';
 import MultiStepSubmissionModal from '../citizen/MultiStepSubmissionModal';
+import BhashiniVoiceModal from '../common/BhashiniVoiceModal';
 import AIAssistantModal from '../common/AIAssistantModal';
 import AuditLogDrawer from '../common/AuditLogDrawer';
 import SIHPitchTour from '../common/SIHPitchTour';
@@ -55,6 +56,7 @@ export default function MainLayout() {
 
       {/* Modals & Slide-outs */}
       <MultiStepSubmissionModal />
+      <BhashiniVoiceModal />
       {/* <AIAssistantModal />
       <AuditLogDrawer />
       <SIHPitchTour

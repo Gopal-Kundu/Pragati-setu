@@ -6,14 +6,14 @@ import { logoutUser, resetAuthState } from '../../store/slices/authSlice';
 import { changeGoogleLanguage } from '../../utils/googleTranslate';
 import { notificationApi } from '../../services/notificationApi';
 import NotificationsModal from './NotificationsModal';
-import { LogIn, LogOut, UserCheck, Menu, X, Globe, User, Bell } from 'lucide-react';
+import { LogIn, LogOut, UserCheck, Menu, X, Globe, User, Bell, Mic } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Navbar() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const authState = useSelector((state) => state.auth);
-  const { lang = 'en', setLang = () => {} } = useAppState() || {};
+  const { lang = 'en', setLang = () => {}, setIsBhashiniModalOpen } = useAppState() || {};
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Notifications State for all roles
@@ -140,6 +140,17 @@ export default function Navbar() {
               </button>
             </div>
 
+            {/* Bhashini Voice Assistant Action Button */}
+            <button
+              onClick={() => setIsBhashiniModalOpen && setIsBhashiniModalOpen(true)}
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-xs shadow-sm shadow-emerald-700/20 hover:shadow-md transition-all cursor-pointer group"
+              title="Bhashini Voice Grievance (बोलकर समस्या दर्ज करें)"
+            >
+              <Mic className="w-3.5 h-3.5 text-amber-300 animate-pulse group-hover:scale-110 transition-transform" />
+              <span className="hidden md:inline">भाषिणी Voice</span>
+              <span className="md:hidden">Voice</span>
+            </button>
+
             {/* Global Notification Bell (For all authenticated roles) */}
             {authState.isAuthenticated && authState.user && (
               <button
@@ -213,6 +224,15 @@ export default function Navbar() {
             >
               <Globe className="w-3.5 h-3.5 text-emerald-600" />
               <span>{lang === 'en' ? 'HI' : 'EN'}</span>
+            </button>
+
+            {/* Mobile Bhashini Voice Button */}
+            <button
+              onClick={() => setIsBhashiniModalOpen && setIsBhashiniModalOpen(true)}
+              className="p-2 rounded-xl bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 transition-colors cursor-pointer"
+              title="Bhashini Voice Grievance"
+            >
+              <Mic className="w-3.5 h-3.5 text-amber-300" />
             </button>
 
             {/* Mobile Auth Button */}

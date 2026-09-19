@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { problemApi } from '../../services/problemApi';
 import ProblemDetailsModal from '../common/ProblemDetailsModal';
+import { useAppState } from '../../context/StateContext';
 import {
   PlusCircle,
   Search,
@@ -33,7 +34,8 @@ import {
   Flame,
   Sun,
   FileCheck,
-  Footprints
+  Footprints,
+  Mic
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -93,6 +95,7 @@ const DOMAIN_ICONS = {
 };
 
 export default function CitizenPortal() {
+  const { setIsBhashiniModalOpen } = useAppState() || {};
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [problems, setProblems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -267,13 +270,24 @@ export default function CitizenPortal() {
           </p>
         </div>
 
-        <button
-          onClick={() => setIsFormOpen(!isFormOpen)}
-          className="flex items-center space-x-2 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-600/20 transition-all hover:scale-105 cursor-pointer whitespace-nowrap self-start sm:self-auto"
-        >
-          <PlusCircle className="w-5 h-5" />
-          <span>{isFormOpen ? 'Close Form' : 'Report a Problem'}</span>
-        </button>
+        <div className="flex items-center space-x-3 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={() => setIsBhashiniModalOpen && setIsBhashiniModalOpen(true)}
+            className="flex items-center space-x-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-teal-700 to-emerald-700 hover:from-teal-800 hover:to-emerald-800 text-white font-bold text-sm shadow-md shadow-teal-700/20 transition-all hover:scale-105 cursor-pointer whitespace-nowrap"
+            title="Bhashini Voice Grievance (बोलकर समस्या दर्ज करें)"
+          >
+            <Mic className="w-4 h-4 text-amber-300 animate-pulse" />
+            <span>भाषिणी Voice</span>
+          </button>
+          <button
+            onClick={() => setIsFormOpen(!isFormOpen)}
+            className="flex items-center space-x-2 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-600/20 transition-all hover:scale-105 cursor-pointer whitespace-nowrap"
+          >
+            <PlusCircle className="w-5 h-5" />
+            <span>{isFormOpen ? 'Close Form' : 'Report a Problem'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Success Notification Banner when a ticket is created */}
@@ -345,9 +359,19 @@ export default function CitizenPortal() {
               </div>
             </div>
 
-            {/* Description */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-700">Problem Description</label>
+            {/* Problem Description */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-slate-700">Problem Description</label>
+                <button
+                  type="button"
+                  onClick={() => setIsBhashiniModalOpen && setIsBhashiniModalOpen(true)}
+                  className="flex items-center space-x-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded cursor-pointer transition-colors"
+                >
+                  <Mic className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>भाषिणी Voice Assist</span>
+                </button>
+              </div>
               <textarea
                 required
                 rows={4}
