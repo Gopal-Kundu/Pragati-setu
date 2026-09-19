@@ -1,16 +1,6 @@
 # 🌉 Jharkhand Pragati Setu (झारखंड प्रगति सेतु)
 ### Smart India Hackathon (SIH 2026) &bull; Societal Problem-to-Innovation Ecosystem Platform
 
-[![Live Platform](https://img.shields.io/badge/Live_Demo-pragati--setu--opal.vercel.app-emerald?style=for-the-badge&logo=vercel)](https://pragati-setu-opal.vercel.app/)
-[![GitHub Repo](https://img.shields.io/badge/GitHub-Gopal--Kundu%2FPragati--setu-181717?style=for-the-badge&logo=github)](https://github.com/Gopal-Kundu/Pragati-setu)
-[![Backend API](https://img.shields.io/badge/Production_API-pragati--setu--vtnk.vercel.app-blue?style=for-the-badge&logo=vercel)](https://pragati-setu-vtnk.vercel.app/api)
-
-🌐 **Live Platform (Frontend)**: [https://pragati-setu-opal.vercel.app/](https://pragati-setu-opal.vercel.app/)  
-🗣️ **Multilingual Language Portal**: [https://pragati-setu-opal.vercel.app/lan](https://pragati-setu-opal.vercel.app/lan)  
-⚡ **Production Backend API**: [https://pragati-setu-vtnk.vercel.app/api](https://pragati-setu-vtnk.vercel.app/api)
-
----
-
 ### 🔑 Demo Login Credentials
 
 | Stakeholder / Role | Email | Password |

@@ -103,7 +103,7 @@ export default function Navbar() {
             </div>
             <div className="truncate">
               <span className="font-black text-base sm:text-xl text-slate-900 tracking-tight leading-none group-hover:text-emerald-700 transition-colors font-heading truncate block">
-                Jharkhand Pragati Setu
+                Pragati Setu
               </span>
             </div>
           </Link>
