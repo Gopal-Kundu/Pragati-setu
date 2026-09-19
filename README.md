@@ -1,6 +1,14 @@
 # 🌉 Jharkhand Pragati Setu (झारखंड प्रगति सेतु)
 ### Smart India Hackathon (SIH 2026) &bull; Societal Problem-to-Innovation Ecosystem Platform
 
+[![Live Platform](https://img.shields.io/badge/Live_Demo-pragati--setu--opal.vercel.app-emerald?style=for-the-badge&logo=vercel)](https://pragati-setu-opal.vercel.app/)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-Gopal--Kundu%2FPragati--setu-181717?style=for-the-badge&logo=github)](https://github.com/Gopal-Kundu/Pragati-setu)
+[![Backend API](https://img.shields.io/badge/Production_API-pragati--setu--vtnk.vercel.app-blue?style=for-the-badge&logo=vercel)](https://pragati-setu-vtnk.vercel.app/api)
+
+🌐 **Live Platform (Frontend)**: [https://pragati-setu-opal.vercel.app/](https://pragati-setu-opal.vercel.app/)  
+🗣️ **Multilingual Language Portal**: [https://pragati-setu-opal.vercel.app/lan](https://pragati-setu-opal.vercel.app/lan)  
+⚡ **Production Backend API**: [https://pragati-setu-vtnk.vercel.app/api](https://pragati-setu-vtnk.vercel.app/api)
+
 ---
 
 ### 🔑 Demo Login Credentials
@@ -81,8 +89,12 @@ Citizens and Gram Panchayats report localized grievances and infrastructural bot
 
 
 
-6. 🌐 Full Bilingual Support (Google Translate Integration)
-- Instant, seamless one-click switching between **English** and **हिंदी (Hindi)** powered by a styled, integrated translation engine.
+### 6. 🎙️ भाषिणी (Bhashini) Multilingual Voice Grievance & AI Triage (`/lan` & Voice Modal)
+- **Voice-First Citizen Empowerment**: Empowers rural, tribal, and semi-literate citizens to report societal problems and civic grievances naturally using their voice in their native mother tongue.
+- **22+ Scheduled Indian Languages**: Integrated with Digital India भाषिणी (Bhashini) architecture and neural language translation, supporting Hindi, Santhali, Bengali, Bhojpuri, Maithili, Odia, Urdu, and more via a dedicated Language Portal (`/lan`).
+- **Persistent Language Preference**: Cookie-stored language preferences immediately localize the platform and prime the voice speech recognition engine.
+- **AI Speech-to-Grievance Structuring**: Tap-to-speak modal with intelligent speech pause retention (*"Please tell us your problem and location"*). Continuous voice transcripts are analyzed by Google Gemini to automatically generate a structured problem title, comprehensive description, and geographical location.
+- **1-Click Community Form Auto-Fill**: One click on "Submit" instantly injects the structured problem narrative directly into the Community Reporting form, bypassing tedious manual typing.
 
 ---
 
@@ -110,18 +122,21 @@ Citizens and Gram Panchayats report localized grievances and infrastructural bot
 - **Styling**: Tailwind CSS, PostCSS
 - **State Management**: Redux Toolkit & React Context
 - **Routing**: React Router DOM (v7)
+- **Voice Recognition**: Web Speech Recognition API with Bhashini locale matching
+- **Multilingual Localization**: Styled Google Neural Translate & Persistent Cookie Store
 - **Icons**: Lucide React
 - **Notifications**: Sonner Toasts
 - **Maps**: React-Leaflet, Leaflet GIS
 - **Deployment**: Vercel SPA (`vercel.json`)
 
-### Backend
+### Backend & AI Intelligence
 - **Runtime**: Node.js (ES Modules)
 - **Framework**: Express.js
 - **Database**: MongoDB Atlas via Mongoose ODM
 - **Authentication**: JSON Web Tokens (JWT) & Secure HTTP-Only Cookies
 - **File Upload**: Multer with Cloudinary CDN Storage
-- **AI Engine**: Generative AI Multi-Domain Triage & Semantic Matchmaker
+- **Voice Grievance Pipeline**: Digital India भाषिणी (Bhashini) ULCA ASR & NMT
+- **Generative AI Engine**: Google Gemini (Speech-to-Problem structuring, Severity Triage & CSR Matchmaking)
 - **Email Notifications**: Nodemailer SMTP Integration
 
 ---
@@ -200,7 +215,12 @@ Create a `.env` file inside `backend/`:
 PORT=5000
 MONGODB_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret_key
-AI_API_KEY=your_ai_api_key
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-1.5-flash
+BHASHINI_USER_ID=your_bhashini_user_id
+BHASHINI_API_KEY=your_bhashini_api_key
+BHASHINI_INFERENCE_KEY=your_bhashini_inference_key
+BHASHINI_PIPELINE_ID=your_bhashini_pipeline_id
 CLOUDINARY_CLOUD_NAME=your_cloudinary_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
@@ -249,6 +269,10 @@ Frontend will be running on `http://localhost:5173`.
 | `PATCH` | `/api/problems/proposals/:id/govt-approve` | Private (Govt) | Approve & issue sanction order or decline proposal |
 | `POST` | `/api/ai/triage` | Public/Auth | AI analysis, severity scoring, and domain classification |
 | `POST` | `/api/ai/chat` | Public/Auth | Pragati AI interactive assistant query handler |
+| `GET` | `/api/bhashini/languages` | Public | Supported Bhashini Indian languages & district catalog |
+| `POST` | `/api/bhashini/asr-translate` | Public | Bhashini ULCA ASR (Speech-to-text) and NMT translation |
+| `POST` | `/api/bhashini/extract-problem` | Public | Gemini AI speech understanding to extract problem title, description & location |
+| `POST` | `/api/bhashini/voice-submit` | Public/Auth | 1-Click direct voice grievance submission |
 | `GET` | `/api/universities/my` | Private (HEI) | Fetch logged-in university profile & proposals |
 | `GET` | `/api/industry/my` | Private (Ind) | Fetch logged-in industry profile & offers |
 | `GET` | `/api/industry/proposals` | Private (Ind) | Fetch domain-matched proposals for CSR funding |
