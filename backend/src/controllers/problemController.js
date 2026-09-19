@@ -4,7 +4,7 @@ import User from '../models/User.js';
 import Location from '../models/Location.js';
 import Proposal from '../models/Proposal.js';
 import IndustryPartner from '../models/IndustryPartner.js';
-import { analyzeAndClassifyProblem, checkProblemDuplicateInLocation } from '../ai/aiService.js';
+import { analyzeAndClassifyProblem, checkProblemDuplicateInLocation, translateProblemForm, containsVernacularOrNonAscii } from '../ai/aiService.js';
 import { uploadMediaToCloudinary } from '../cloudinary/upload.js';
 import { sendProblemSubmittedEmail, sendUniversityAllocationEmail } from '../email/emailService.js';
 
@@ -15,12 +15,15 @@ import { sendProblemSubmittedEmail, sendUniversityAllocationEmail } from '../ema
  */
 export const createProblem = async (req, res) => {
   try {
-    const {
+    let {
       title,
       description,
       location,
       submitter,
-      priority = 'Medium'
+      priority = 'Medium',
+      originalTitle = '',
+      originalDescription = '',
+      originalLanguage = ''
     } = req.body;
 
     if (!title || !description) {
@@ -33,6 +36,38 @@ export const createProblem = async (req, res) => {
     // 1. Parse nested JSON if sent via multipart/form-data
     const parsedLocation = typeof location === 'string' ? JSON.parse(location) : (location || { district: 'Ranchi', state: 'Jharkhand' });
     const parsedSubmitter = typeof submitter === 'string' ? JSON.parse(submitter) : (submitter || { name: 'Concerned Citizen', role: 'individual_citizen' });
+
+    // 1b. Check if translation to English is needed if not already supplied
+    let finalOriginalTitle = originalTitle || title;
+    let finalOriginalDescription = originalDescription || description;
+    let finalOriginalLanguage = originalLanguage || 'English';
+
+    if (
+      (!originalLanguage || originalLanguage === 'English') &&
+      (containsVernacularOrNonAscii(title) || containsVernacularOrNonAscii(description) || containsVernacularOrNonAscii(parsedLocation.block) || containsVernacularOrNonAscii(parsedLocation.panchayat))
+    ) {
+      try {
+        const transResult = await translateProblemForm({
+          title,
+          description,
+          block: parsedLocation.block,
+          panchayat: parsedLocation.panchayat,
+          address: parsedLocation.address
+        });
+        if (transResult.wasTranslated) {
+          finalOriginalTitle = transResult.originalTitle || title;
+          finalOriginalDescription = transResult.originalDescription || description;
+          finalOriginalLanguage = transResult.detectedLanguage || 'Hindi / Regional';
+          title = transResult.title || title;
+          description = transResult.description || description;
+          if (transResult.block) parsedLocation.block = transResult.block;
+          if (transResult.panchayat) parsedLocation.panchayat = transResult.panchayat;
+          if (transResult.address) parsedLocation.address = transResult.address;
+        }
+      } catch (transErr) {
+        console.warn('[Server-side Problem Translation Warning]:', transErr.message);
+      }
+    }
 
     const lat = Number(parsedLocation.lat) || 23.3441;
     const lng = Number(parsedLocation.lng) || 85.3096;

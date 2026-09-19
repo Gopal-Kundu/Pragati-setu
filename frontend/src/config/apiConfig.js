@@ -7,26 +7,23 @@
  */
 const rawApiUrl = import.meta.env.VITE_API_BASE_URL;
 
-// Determine API_BASE_URL:
-// - If VITE_API_BASE_URL is explicitly set and starts with 'http', use it
-// - If VITE_API_BASE_URL is '/api' or relative, use '/api'
-// - In production / browser environments with Vercel rewrites or Vite dev proxy, default to '/api'
-export const API_BASE_URL = (() => {
-  if (rawApiUrl) {
-    return rawApiUrl.replace(/\/+$/, '');
-  }
-  // Default to relative '/api' for same-origin proxy (works with Vercel rewrites & Vite dev proxy)
-  return '/api';
-})();
-
 export const BACKEND_URL = (() => {
   if (rawApiUrl && (rawApiUrl.startsWith('http://') || rawApiUrl.startsWith('https://'))) {
     return rawApiUrl.replace(/\/api\/?$/, '');
   }
-  if (typeof window !== 'undefined') {
-    return window.location.origin;
-  }
   return 'https://pragati-setu-vtnk.vercel.app';
+})();
+
+export const API_BASE_URL = (() => {
+  if (rawApiUrl) {
+    return rawApiUrl.replace(/\/+$/, '');
+  }
+  // In local dev (localhost / 127.0.0.1), use relative '/api' for Vite dev server proxy
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return '/api';
+  }
+  // In production / hosted environments, route to live backend API
+  return 'https://pragati-setu-vtnk.vercel.app/api';
 })();
 
 export const API_ENDPOINTS = {

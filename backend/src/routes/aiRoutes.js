@@ -1,5 +1,5 @@
 import express from 'express';
-import { categorizeProblem, aiChat } from '../controllers/aiController.js';
+import { categorizeProblem, aiChat, translateForm } from '../controllers/aiController.js';
 
 const router = express.Router();
 
@@ -8,5 +8,8 @@ router.post('/categorize', categorizeProblem);
 
 // Live AI Assistant Chat Endpoint
 router.post('/chat', aiChat);
+
+// Multilingual Form Value Translation (Vernacular/Regional to English)
+router.post('/translate-form', translateForm);
 
 export default router;

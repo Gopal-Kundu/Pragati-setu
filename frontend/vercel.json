@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://backend-psi-jade-47.vercel.app/api/:path*"
+      "destination": "https://pragati-setu-vtnk.vercel.app/api/:path*"
     },
     {
       "source": "/(.*)",

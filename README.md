@@ -190,7 +190,7 @@ Jharkhand-Pragati-Setu/
 
 ### 2. Clone the Repository
 ```bash
-git clone https://github.com/Gopal-Kundu/Pragati-setu.git
+git clone https://github.com/PrithvijitBose/Pragati-setu.git
 cd Jharkhand-Pragati-Setu
 ```
 

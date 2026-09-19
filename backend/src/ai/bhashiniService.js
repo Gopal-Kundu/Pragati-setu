@@ -151,19 +151,42 @@ export const callBhashiniUlcaPipeline = async ({
 export const extractProblemFromSpeech = async ({
   transcript = '',
   translatedText = '',
-  sourceLanguage = 'hi'
+  sourceLanguage = 'hi',
+  audioBase64 = null,
+  mimeType = 'audio/webm'
 }) => {
+  // If Bhashini ULCA credentials exist and transcript is empty but audioBase64 is provided
+  if (audioBase64 && (!transcript || transcript.trim().length === 0)) {
+    if (process.env.BHASHINI_API_KEY && process.env.BHASHINI_USER_ID) {
+      try {
+        const asrRes = await callBhashiniUlcaPipeline({
+          audioBase64,
+          sourceLanguage,
+          targetLanguage: 'en'
+        });
+        if (asrRes.success && asrRes.transcript) {
+          transcript = asrRes.transcript;
+          translatedText = asrRes.translated || transcript;
+        }
+      } catch (err) {
+        console.warn('[Bhashini ULCA fallback]:', err.message);
+      }
+    }
+  }
+
   const combinedText = `${transcript} ${translatedText}`.trim();
-  if (!combinedText) {
+  if (!combinedText && !audioBase64) {
     return {
+      transcript: '',
       title: 'Societal Grievance via Voice',
-      description: '',
+      narrative: '',
       domain: 'Water Resources',
       district: 'Ranchi',
       block: '',
       panchayat: '',
       urgency: 'Medium',
-      affectedPopulation: '100+ Households'
+      affectedPopulation: '100+ Households',
+      keyNeeds: []
     };
   }
 
@@ -173,25 +196,27 @@ export const extractProblemFromSpeech = async ({
       const model = genAI.getGenerativeModel({ model: configuredModelName });
       const prompt = `
 You are the AI Grievance Extraction Engine for Jharkhand Pragati Setu (Smart India Hackathon 2026).
-A citizen or Gram Panchayat Mukhiya has submitted a problem report using voice speech in ${sourceLanguage}.
+A citizen or Gram Panchayat Mukhiya has submitted a problem report using voice speech in language "${sourceLanguage}".
 
-Spoken Vernacular Transcript: "${transcript}"
-English Translation / Context: "${translatedText}"
+${transcript ? `Spoken Vernacular Transcript: "${transcript}"` : 'Please listen carefully to the attached citizen voice audio recording.'}
+${translatedText ? `English Translation / Context: "${translatedText}"` : ''}
 
 TASK:
 Analyze the speech and extract the structured problem statement parameters.
-1. "title": A concise, formal problem title in English (max 10 words).
-2. "narrative": Detailed description of what is happening, what is damaged/needed, and how people are suffering.
-3. "domain": Must be EXACTLY ONE of: ${CANONICAL_DOMAINS.map(d => `"${d}"`).join(', ')}.
-4. "district": Detect if any Jharkhand district is mentioned (${JHARKHAND_DISTRICTS.join(', ')}). Default to "Ranchi" if unknown.
-5. "block": The administrative block or locality mentioned, or empty string.
-6. "panchayat": The Gram Panchayat or village mentioned, or empty string.
-7. "urgency": "Critical" (hazards, immediate disaster), "High" (acute seasonal crisis, health threat), "Medium" (recurring infrastructure breakdown), or "Low" (general improvement).
-8. "affectedPopulation": Estimated number of households, students, or citizens affected (e.g. "300 Households", "500 Farmers").
-9. "keyNeeds": Array of 2-4 technical/infrastructural items needed (e.g. ["Solar Deep Borewell", "Water Filter Unit"]).
+1. "transcript": Accurate transcription of what the speaker said in their original spoken language.
+2. "title": A concise, formal problem title in English (max 10 words).
+3. "narrative": Detailed description in English of what is happening, what is damaged/needed, and how people are suffering.
+4. "domain": Must be EXACTLY ONE of: ${CANONICAL_DOMAINS.map(d => `"${d}"`).join(', ')}.
+5. "district": Detect if any Jharkhand district is mentioned (${JHARKHAND_DISTRICTS.join(', ')}). Default to "Ranchi" if unknown.
+6. "block": The administrative block or locality mentioned, or empty string.
+7. "panchayat": The Gram Panchayat or village mentioned, or empty string.
+8. "urgency": "Critical" (hazards, immediate disaster), "High" (acute seasonal crisis, health threat), "Medium" (recurring infrastructure breakdown), or "Low" (general improvement).
+9. "affectedPopulation": Estimated number of households, students, or citizens affected (e.g. "300 Households", "500 Farmers").
+10. "keyNeeds": Array of 2-4 technical/infrastructural items needed (e.g. ["Solar Deep Borewell", "Water Filter Unit"]).
 
 Return ONLY a valid JSON object without markdown fences or additional explanation:
 {
+  "transcript": "Accurate transcription of what the citizen spoke",
   "title": "Concise English title",
   "narrative": "Detailed narrative description",
   "domain": "One canonical domain",
@@ -204,24 +229,43 @@ Return ONLY a valid JSON object without markdown fences or additional explanatio
 }
 `;
 
-      const result = await model.generateContent(prompt);
+      const contentParts = [];
+      if (audioBase64) {
+        let cleanMime = mimeType || 'audio/webm';
+        if (cleanMime.includes(';')) {
+          cleanMime = cleanMime.split(';')[0].trim();
+        }
+        contentParts.push({
+          inlineData: {
+            mimeType: cleanMime,
+            data: audioBase64
+          }
+        });
+      }
+      contentParts.push(prompt);
+
+      const result = await model.generateContent(contentParts);
       const rawText = result.response.text().trim();
       const cleanJson = rawText.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
       const parsed = JSON.parse(cleanJson);
 
+      const resolvedTranscript = parsed.transcript || transcript || parsed.narrative || '';
       const validDomain = CANONICAL_DOMAINS.find(
         d => d.toLowerCase() === (parsed.domain || '').toLowerCase()
-      ) || fallbackClassify(parsed.title || '', combinedText);
+      ) || fallbackClassify(parsed.title || '', combinedText || resolvedTranscript);
 
+      const resolvedDesc = parsed.narrative || parsed.description || resolvedTranscript || combinedText;
       return {
-        title: parsed.title || generateDefaultTitle(combinedText),
-        narrative: parsed.narrative || combinedText,
+        transcript: resolvedTranscript,
+        title: parsed.title || generateDefaultTitle(resolvedDesc || resolvedTranscript),
+        narrative: resolvedDesc,
+        description: resolvedDesc,
         domain: validDomain,
-        district: matchDistrict(parsed.district || combinedText),
-        block: parsed.block || matchBlock(combinedText),
+        district: matchDistrict(parsed.district || resolvedDesc),
+        block: parsed.block || matchBlock(resolvedDesc),
         panchayat: parsed.panchayat || '',
         urgency: ['Critical', 'High', 'Medium', 'Low'].includes(parsed.urgency) ? parsed.urgency : 'High',
-        affectedPopulation: parsed.affectedPopulation || extractPopulation(combinedText),
+        affectedPopulation: parsed.affectedPopulation || extractPopulation(resolvedDesc),
         keyNeeds: Array.isArray(parsed.keyNeeds) ? parsed.keyNeeds : []
       };
     } catch (err) {
@@ -230,7 +274,7 @@ Return ONLY a valid JSON object without markdown fences or additional explanatio
   }
 
   // 2. High-Quality Deterministic Fallback Extractor
-  return deterministicExtract(combinedText, transcript);
+  return deterministicExtract(combinedText || 'Voice reported grievance', transcript);
 };
 
 /**
@@ -264,9 +308,12 @@ const deterministicExtract = (combinedText, rawTranscript) => {
     title = `Societal Infrastructure Grievance in ${block || district}`;
   }
 
+  const desc = combinedText || rawTranscript || 'Grassroots challenge reported via Bhashini voice interface.';
+
   return {
     title,
-    narrative: combinedText || rawTranscript || 'Grassroots challenge reported via Bhashini voice interface.',
+    narrative: desc,
+    description: desc,
     domain,
     district,
     block,
@@ -305,8 +352,12 @@ const extractPopulation = (text) => {
 };
 
 const generateDefaultTitle = (text) => {
-  const words = text.split(/\s+/).slice(0, 8).join(' ');
-  return words ? `${words}...` : 'Societal Grievance via Bhashini Voice';
+  if (!text) return 'Societal Grievance via Bhashini Voice';
+  const clean = text.replace(/^[^\w\u0900-\u097F]+/, '').trim();
+  const words = clean.split(/\s+/).slice(0, 8).join(' ');
+  if (!words) return 'Societal Grievance via Bhashini Voice';
+  const capitalized = words.charAt(0).toUpperCase() + words.slice(1);
+  return clean.split(/\s+/).length > 8 ? `${capitalized}...` : capitalized;
 };
 
 export default {

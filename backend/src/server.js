@@ -27,6 +27,7 @@ app.set('trust proxy', 1);
 
 const ALLOWED_ORIGINS = [
   'https://jharkhand-pragati-setu.vercel.app',
+  'https://pragati-setu-opal.vercel.app',
   CLIENT_URL,
   'http://localhost:5173',
   'http://127.0.0.1:5173'

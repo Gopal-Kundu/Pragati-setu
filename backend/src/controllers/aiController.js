@@ -1,5 +1,5 @@
 import Problem from '../models/Problem.js';
-import { analyzeAndClassifyProblem, checkProblemDuplicateInLocation, CANONICAL_DOMAINS } from '../ai/aiService.js';
+import { analyzeAndClassifyProblem, checkProblemDuplicateInLocation, CANONICAL_DOMAINS, translateProblemForm } from '../ai/aiService.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
 
@@ -136,8 +136,45 @@ export const aiChat = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Translate problem form values (title, description, location) from regional/vernacular languages to English
+ * @route   POST /api/ai/translate-form
+ * @access  Public / Authenticated
+ */
+export const translateForm = async (req, res) => {
+  try {
+    const {
+      title = '',
+      description = '',
+      block = '',
+      panchayat = '',
+      address = ''
+    } = req.body;
+
+    const result = await translateProblemForm({
+      title,
+      description,
+      block,
+      panchayat,
+      address
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('[AI Translate Form Error]:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Error translating form values'
+    });
+  }
+};
+
 export default {
   categorizeProblem,
   aiChat,
+  translateForm,
   SIH_DOMAINS
 };

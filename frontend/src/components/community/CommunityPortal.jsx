@@ -187,7 +187,7 @@ export default function CommunityPortal() {
       setFormData((prev) => ({
         ...prev,
         title: prefilledGrievanceData.title || prev.title,
-        description: prefilledGrievanceData.narrative || prefilledGrievanceData.description || prev.description,
+        description: prefilledGrievanceData.description || prefilledGrievanceData.narrative || prev.description,
         district: matchedDistrict,
         block: prefilledGrievanceData.block || prev.block,
         panchayat: prefilledGrievanceData.panchayat || prev.panchayat
@@ -429,7 +429,7 @@ export default function CommunityPortal() {
                   className="flex items-center space-x-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded cursor-pointer transition-colors"
                 >
                   <Mic className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>भाषिणी Voice Assist</span>
+                  <span>Click for Voice Assist</span>
                 </button>
               </div>
               <textarea

@@ -77,9 +77,14 @@ export default function BhashiniVoiceModal() {
     isListening,
     fullTranscript,
     volume,
+    audioBase64,
+    audioMimeType,
+    recordingDuration,
+    speechEngine,
     error: micError,
     startListening,
     stopListening,
+    stopAndGetAudio,
     reset: resetVoice,
     setTranscript
   } = useBhashiniVoice({
@@ -100,36 +105,65 @@ export default function BhashiniVoiceModal() {
     }
   };
 
-  // Called when user clicks "Done" after speaking
+  // Called when user clicks "Done" after speaking (Universal Chrome, Brave, Firefox, Mobile & Desktop)
   const handleDone = async () => {
+    let speechText = fullTranscript.trim();
+    let currentAudio = audioBase64;
+    let currentMime = audioMimeType;
+
+    // If still actively recording, finalize audio capture
     if (isListening) {
-      stopListening();
+      const audioResult = await stopAndGetAudio();
+      speechText = (audioResult.transcript || speechText).trim();
+      currentAudio = audioResult.audioBase64 || currentAudio;
+      currentMime = audioResult.mimeType || currentMime;
     }
 
-    const speechText = fullTranscript.trim();
-    if (!speechText) {
+    if (!speechText && !currentAudio && recordingDuration === 0) {
       toast.error('Please tap the mic and speak your problem first.');
       return;
     }
 
     setIsAnalyzing(true);
     try {
-      // Call backend Gemini AI extraction endpoint
+      // Call backend Gemini AI extraction endpoint with transcript AND/OR audioBase64
       const res = await bhashiniApi.extractProblem({
         transcript: speechText,
         translatedText: speechText,
-        sourceLanguage: activeLang.code
+        sourceLanguage: activeLang.code,
+        audioBase64: currentAudio,
+        mimeType: currentMime
       });
 
       if (res.success && res.data) {
-        setExtractedData(res.data);
-        toast.success('Gemini analyzed speech and structured the problem!');
+        const rawSpeech = speechText || res.transcript || '';
+        const cleanTitle = (res.data.title || '').replace(/^["'\s]+|["'\s]+$/g, '').trim();
+        const title = cleanTitle || (rawSpeech ? (rawSpeech.split(/\s+/).length > 8 ? rawSpeech.split(/\s+/).slice(0, 8).join(' ') + '...' : rawSpeech) : 'Voice Reported Challenge');
+        const description = (res.data.description || res.data.narrative || rawSpeech || 'Societal grievance reported via voice.').trim();
+
+        setExtractedData({
+          ...res.data,
+          title,
+          description,
+          narrative: description
+        });
+
+        if (res.transcript && !speechText) {
+          setTranscript(res.transcript);
+        }
+        toast.success('Speech analyzed and problem description generated!');
       } else {
         // Fallback problem parameters
+        const cleanWords = speechText ? speechText.trim().split(/\s+/) : [];
+        const defaultTitle = cleanWords.length > 0 
+          ? (cleanWords.length > 8 ? cleanWords.slice(0, 8).join(' ') + '...' : cleanWords.join(' '))
+          : 'Voice Reported Challenge';
+        const desc = speechText ? speechText.trim() : 'Societal grievance reported via voice audio';
         setExtractedData({
-          title: 'Voice Reported Challenge',
-          narrative: speechText,
-          domain: 'Community Welfare',
+          title: defaultTitle.charAt(0).toUpperCase() + defaultTitle.slice(1),
+          narrative: desc,
+          description: desc,
+          domain: 'Water Resources',
           district: 'Ranchi',
           block: '',
           urgency: 'High'
@@ -137,11 +171,17 @@ export default function BhashiniVoiceModal() {
         toast.info('Problem description generated from voice.');
       }
     } catch (err) {
-      console.warn('Gemini extraction warning:', err);
+      console.warn('Gemini speech extraction warning:', err);
+      const cleanWords = speechText ? speechText.trim().split(/\s+/) : [];
+      const defaultTitle = cleanWords.length > 0 
+        ? (cleanWords.length > 8 ? cleanWords.slice(0, 8).join(' ') + '...' : cleanWords.join(' '))
+        : 'Voice Reported Grievance';
+      const desc = speechText ? speechText.trim() : 'Societal grievance reported via voice audio';
       setExtractedData({
-        title: 'Voice Reported Grievance',
-        narrative: speechText,
-        domain: 'Community Welfare',
+        title: defaultTitle.charAt(0).toUpperCase() + defaultTitle.slice(1),
+        narrative: desc,
+        description: desc,
+        domain: 'Water Resources',
         district: 'Ranchi',
         block: '',
         urgency: 'Medium'
@@ -154,25 +194,26 @@ export default function BhashiniVoiceModal() {
 
   // Transfer extracted problem to Community Portal Form via Context
   const handleSubmitToReportModal = () => {
-    const dataToPreload = extractedData || {
-      title: 'Voice Problem Report',
-      narrative: fullTranscript,
-      district: 'Ranchi',
-      block: '',
-      urgency: 'Medium'
-    };
+    const rawSpeech = fullTranscript.trim();
+    const cleanWords = rawSpeech ? rawSpeech.split(/\s+/) : [];
+    const defaultTitle = cleanWords.length > 0 
+      ? (cleanWords.length > 8 ? cleanWords.slice(0, 8).join(' ') + '...' : cleanWords.join(' '))
+      : 'Voice Reported Challenge';
+    const finalTitle = (extractedData?.title || '').trim() || (defaultTitle.charAt(0).toUpperCase() + defaultTitle.slice(1));
+    const finalDesc = (extractedData?.description || extractedData?.narrative || rawSpeech || 'Societal grievance reported via voice.').trim();
 
     setPrefilledGrievanceData({
-      title: dataToPreload.title || 'Voice Reported Challenge',
-      narrative: dataToPreload.narrative || fullTranscript,
-      districtName: dataToPreload.district || 'Ranchi',
-      district: dataToPreload.district || 'Ranchi',
-      block: dataToPreload.block || '',
-      panchayat: dataToPreload.panchayat || '',
-      domain: dataToPreload.domain || 'Others'
+      title: finalTitle,
+      narrative: finalDesc,
+      description: finalDesc,
+      districtName: extractedData?.district || 'Ranchi',
+      district: extractedData?.district || 'Ranchi',
+      block: extractedData?.block || '',
+      panchayat: extractedData?.panchayat || '',
+      domain: extractedData?.domain || 'Others'
     });
 
-    // Close voice modal (transfers directly to CommunityPortal form, not MultiStepSubmissionModal)
+    // Close voice modal (transfers directly to CommunityPortal form)
     setIsBhashiniModalOpen(false);
     toast.success('Problem details transferred to report form!');
   };
@@ -259,17 +300,13 @@ export default function BhashiniVoiceModal() {
             <div>
               <h4 className="font-extrabold text-base text-slate-800">
                 {isListening
-                  ? 'Listening... Tap to Pause'
+                  ? (speechEngine === 'web-speech' ? 'Listening... Tap to Pause' : 'Recording Audio... Tap to Pause')
                   : 'Tap to Speak'}
               </h4>
               <p className="text-sm font-semibold text-emerald-800 mt-1">
                 Please tell us your problem and location
               </p>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {isListening
-                  ? 'Speak clearly in your selected language about your problem, village, or district.'
-                  : `Language recognized: ${activeLang.name}`}
-              </p>
+              
             </div>
 
             {micError && (
@@ -287,7 +324,7 @@ export default function BhashiniVoiceModal() {
                 <FileText className="w-3.5 h-3.5 text-emerald-600" />
                 Spoken Transcript:
               </label>
-              {fullTranscript && (
+              {(fullTranscript || audioBase64) && (
                 <button
                   type="button"
                   onClick={() => { resetVoice(); setExtractedData(null); }}
@@ -304,21 +341,21 @@ export default function BhashiniVoiceModal() {
                 rows={3}
                 value={fullTranscript}
                 onChange={(e) => setTranscript(e.target.value)}
-                placeholder="Please tell us your problem and location (words will appear here as you speak)..."
+                placeholder="Please tell us your problem and location (words appear here as you speak or after clicking Done)..."
                 className="w-full text-xs sm:text-sm p-3.5 rounded-2xl border border-slate-300 text-slate-900 bg-slate-50 placeholder:text-slate-400 font-medium focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none transition-all"
               />
 
               {isAnalyzing && (
                 <div className="absolute inset-0 bg-white/90 backdrop-blur-xs rounded-2xl flex items-center justify-center space-x-2 text-emerald-800 text-xs sm:text-sm font-bold shadow-inner">
                   <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
-                  <span>Analyzing Speech...</span>
+                  <span>Analyzing Speech with AI...</span>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Done Button: Always visible whenever transcript has even 1 character */}
-          {fullTranscript && fullTranscript.trim().length > 0 && !isAnalyzing && (
+          {/* Done Button: Visible whenever transcript has text, user recorded audio, or is currently recording */}
+          {((fullTranscript && fullTranscript.trim().length > 0) || recordingDuration >= 1 || isListening || audioBase64) && !isAnalyzing && (
             <div className="flex justify-end pt-1 animate-in fade-in">
               <button
                 type="button"
@@ -327,6 +364,7 @@ export default function BhashiniVoiceModal() {
               >
                 <Check className="w-4 h-4 stroke-[3]" />
                 <span>Done</span>
+                
               </button>
             </div>
           )}
@@ -355,20 +393,9 @@ export default function BhashiniVoiceModal() {
                   Description
                 </span>
                 <p className="text-xs text-slate-700 font-medium mt-0.5 leading-relaxed bg-white/70 p-3 rounded-xl border border-emerald-100">
-                  {extractedData.narrative}
+                  {extractedData.description || extractedData.narrative}
                 </p>
               </div>
-
-              {/* Location Meta (without urgency or domain badges) */}
-              {extractedData.district && (
-                <div className="flex items-center space-x-1.5 text-xs text-slate-700 pt-1">
-                  <MapPin className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-                  <span className="font-semibold truncate">
-                    {extractedData.district} {extractedData.block ? `(${extractedData.block})` : ''}
-                  </span>
-                </div>
-              )}
-
               {/* Submit Problem Button */}
               <div className="pt-3 border-t border-emerald-200/60 flex items-center justify-end gap-2">
                 <button

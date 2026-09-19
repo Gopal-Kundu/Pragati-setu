@@ -20,6 +20,20 @@ const problemSchema = new mongoose.Schema(
       required: [true, 'Problem description is required'],
       trim: true
     },
+    originalTitle: {
+      type: String,
+      default: '',
+      trim: true
+    },
+    originalDescription: {
+      type: String,
+      default: '',
+      trim: true
+    },
+    originalLanguage: {
+      type: String,
+      default: 'English'
+    },
     domain: {
       type: String,
       required: [true, 'Domain is required'],

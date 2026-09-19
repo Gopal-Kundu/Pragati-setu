@@ -42,12 +42,14 @@ export const bhashiniApi = {
     return res.data;
   },
 
-  // Extract structured problem fields from spoken speech or transcript
-  extractProblem: async ({ transcript, translatedText, sourceLanguage = 'hi' }) => {
+  // Extract structured problem fields from spoken speech, transcript, or audio recording
+  extractProblem: async ({ transcript, translatedText, sourceLanguage = 'hi', audioBase64, mimeType }) => {
     const res = await apiClient.post('/bhashini/extract-problem', {
       transcript,
       translatedText,
-      sourceLanguage
+      sourceLanguage,
+      audioBase64,
+      mimeType
     });
     return res.data;
   },

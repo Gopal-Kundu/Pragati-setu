@@ -250,10 +250,118 @@ export const matchProposalToIndustry = async (proposal, industryList = []) => {
   };
 };
 
+/**
+ * Helper to detect whether text contains Indian vernacular scripts (Devanagari, Bengali, Ol Chiki, Odia, etc.)
+ */
+export const containsVernacularOrNonAscii = (text = '') => {
+  if (!text) return false;
+  // Devanagari (\u0900-\u097F), Bengali (\u0980-\u09FF), Ol Chiki (\u1C50-\u1C7F), Odia (\u0B00-\u0B7F), Arabic/Urdu (\u0600-\u06FF)
+  return /[\u0900-\u097F\u0980-\u09FF\u1C50-\u1C7F\u0B00-\u0B7F\u0600-\u06FF]/.test(text);
+};
+
+/**
+ * AI Problem Form Translation Engine
+ * Translates citizen problem statements submitted in Indian regional languages (Hindi, Bengali, Santali, Maithili, Odia, etc.)
+ * or romanized vernacular to standardized English, while preserving original values.
+ */
+export const translateProblemForm = async ({
+  title = '',
+  description = '',
+  block = '',
+  panchayat = '',
+  address = ''
+}) => {
+  const combined = `${title} ${description} ${block} ${panchayat} ${address}`.trim();
+  if (!combined) {
+    return {
+      title,
+      description,
+      block,
+      panchayat,
+      address,
+      originalTitle: title,
+      originalDescription: description,
+      detectedLanguage: 'English',
+      wasTranslated: false
+    };
+  }
+
+  // Attempt AI translation if genAI is available
+  if (genAI) {
+    try {
+      const model = getGenerativeModel();
+      const prompt = `
+You are the Multilingual Translation & Grievance Normalization Engine for Jharkhand Pragati Setu (Smart India Hackathon 2026).
+A citizen, local representative, or PRI member from Jharkhand has submitted or drafted a societal grievance.
+The text may be in an Indian vernacular language (Hindi, Bengali, Santhali, Mundari, Ho, Kurukh, Khortha, Nagpuri, Maithili, Odia, Urdu, etc.), romanized vernacular ("hinglish"), or English.
+
+INPUT FORM VALUES:
+- Title: "${title.replace(/"/g, '\\"')}"
+- Description: "${description.replace(/"/g, '\\"')}"
+- Block: "${block.replace(/"/g, '\\"')}"
+- Panchayat / Village: "${panchayat.replace(/"/g, '\\"')}"
+- Address / Landmark: "${address.replace(/"/g, '\\"')}"
+
+TASK:
+1. Detect the primary language of the input (e.g., "Hindi", "Bengali", "Santhali", "English", "Bhojpuri", "Maithili", etc.).
+2. Translate and normalize all fields into clear, professional, official English suitable for government triage officers, university researchers, and industry CSR sponsors.
+   - CRITICAL REQUIREMENT: All returned fields ("title", "description", "block", "panchayat", "address") MUST BE 100% IN ENGLISH. NEVER return Hindi, Bengali, or other vernacular scripts in these fields. When submitting, values must never remain in regional/translated language.
+   - For proper nouns like place names (Block, Panchayat, Village), provide accurate English transliteration (e.g., "कर्रा" -> "Karra", "सोनमेर" -> "Sonmer", "राँची" -> "Ranchi").
+   - If a field is already in English, keep it in English.
+3. Determine if translation was needed (wasTranslated = true if any field was translated from non-English or Romanized regional text).
+
+Return ONLY a valid, parseable JSON object with NO markdown ticks or other text:
+{
+  "title": "Standardized English title (NEVER in vernacular/translated script)",
+  "description": "Standardized English description (NEVER in vernacular/translated script)",
+  "block": "Standardized English block name",
+  "panchayat": "Standardized English panchayat/village name",
+  "address": "Standardized English address",
+  "detectedLanguage": "Detected Language Name",
+  "wasTranslated": true
+}
+`;
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(cleanJson);
+
+      return {
+        title: (parsed.title || title).trim(),
+        description: (parsed.description || description).trim(),
+        block: (parsed.block || block).trim(),
+        panchayat: (parsed.panchayat || panchayat).trim(),
+        address: (parsed.address || address).trim(),
+        originalTitle: title,
+        originalDescription: description,
+        detectedLanguage: parsed.detectedLanguage || (containsVernacularOrNonAscii(combined) ? 'Hindi / Regional' : 'English'),
+        wasTranslated: parsed.wasTranslated !== false
+      };
+    } catch (err) {
+      console.warn('[translateProblemForm AI Warning]:', err.message);
+    }
+  }
+
+  // Fallback if AI not reachable
+  return {
+    title,
+    description,
+    block,
+    panchayat,
+    address,
+    originalTitle: title,
+    originalDescription: description,
+    detectedLanguage: containsVernacularOrNonAscii(combined) ? 'Hindi / Regional' : 'English',
+    wasTranslated: false
+  };
+};
+
 export default {
   CANONICAL_DOMAINS,
   analyzeAndClassifyProblem,
   checkProblemDuplicateInLocation,
   fallbackClassify,
-  matchProposalToIndustry
+  matchProposalToIndustry,
+  translateProblemForm,
+  containsVernacularOrNonAscii
 };

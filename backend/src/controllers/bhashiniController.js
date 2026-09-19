@@ -76,25 +76,41 @@ export const extractProblem = async (req, res) => {
     const {
       transcript = '',
       translatedText = '',
-      sourceLanguage = 'hi'
+      sourceLanguage = 'hi',
+      audioBase64 = null,
+      mimeType = 'audio/webm'
     } = req.body;
 
-    if (!transcript && !translatedText) {
+    if (!transcript && !translatedText && !audioBase64) {
       return res.status(400).json({
         success: false,
-        message: 'Transcript or translated text is required to extract problem parameters'
+        message: 'Transcript, translated text, or voice audio is required to extract problem parameters'
       });
     }
 
     const extracted = await extractProblemFromSpeech({
       transcript,
       translatedText,
-      sourceLanguage
+      sourceLanguage,
+      audioBase64,
+      mimeType
     });
+
+    const desc = (extracted.description || extracted.narrative || transcript || 'Grassroots challenge reported via voice.').trim();
+    const cleanTitle = (extracted.title || '').replace(/^["'\s]+|["'\s]+$/g, '').trim();
+    const title = cleanTitle || 'Societal Grievance via Voice';
+
+    const finalData = {
+      ...extracted,
+      title,
+      description: desc,
+      narrative: desc
+    };
 
     return res.status(200).json({
       success: true,
-      data: extracted
+      data: finalData,
+      transcript: extracted.transcript || transcript
     });
   } catch (error) {
     console.error('[Bhashini Extract Problem Error]:', error);
