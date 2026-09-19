@@ -26,7 +26,7 @@ export const BACKEND_URL = (() => {
   if (typeof window !== 'undefined') {
     return window.location.origin;
   }
-  return 'https://backend-psi-jade-47.vercel.app';
+  return 'https://pragati-setu-vtnk.vercel.app';
 })();
 
 export const API_ENDPOINTS = {
