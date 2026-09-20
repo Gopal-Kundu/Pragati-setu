@@ -9,7 +9,8 @@ import {
   fundProblemThunk,
   updateMilestoneThunk,
   validateSolutionThunk,
-  setSelectedProblemId
+  setSelectedProblemId,
+  addLocalAuditLog
 } from '../store/slices/ecosystemSlice';
 import { setActiveRole as setReduxActiveRole } from '../store/slices/authSlice';
 import { setActiveView as setReduxActiveView } from '../store/slices/uiSlice';
@@ -99,7 +100,7 @@ export function StateProvider({ children }) {
       target,
       note
     };
-    setAuditLogs(prev => [newEntry, ...prev]);
+    dispatch(addLocalAuditLog(newEntry));
   };
 
   // Add notification
@@ -164,7 +165,34 @@ export function StateProvider({ children }) {
         evidenceUrl: (formData.mediaFiles && formData.mediaFiles[0]?.url) || ''
       };
 
-      const submitAction = await dispatch(submitProblemThunk(payload));
+      let submitPayload;
+      const hasFiles = Boolean(formData.evidenceFile || formData.videoFile || (formData.files && formData.files.length > 0));
+
+      if (hasFiles) {
+        submitPayload = new FormData();
+        submitPayload.append('title', payload.title);
+        submitPayload.append('description', payload.description);
+        submitPayload.append('domain', payload.domain);
+        submitPayload.append('priority', payload.priority);
+        submitPayload.append('location', JSON.stringify(payload.location));
+        submitPayload.append('submitter', JSON.stringify(payload.submitter));
+
+        if (formData.evidenceFile) {
+          submitPayload.append('evidence', formData.evidenceFile);
+        }
+        if (formData.videoFile) {
+          submitPayload.append('evidence', formData.videoFile);
+        }
+        if (formData.files && formData.files.length > 0) {
+          for (const f of formData.files) {
+            submitPayload.append('evidence', f);
+          }
+        }
+      } else {
+        submitPayload = payload;
+      }
+
+      const submitAction = await dispatch(submitProblemThunk(submitPayload));
       if (submitProblemThunk.rejected.match(submitAction)) {
         const errPayload = submitAction.payload;
         const apiMessage = typeof errPayload === 'object' 
@@ -190,11 +218,16 @@ export function StateProvider({ children }) {
       addNotification(`New Challenge registered (${payload.domain})`, 'government');
       setSelectedClusterId(problemId);
 
+      if (typeof window !== 'undefined' && createdProblem) {
+        window.dispatchEvent(new CustomEvent('problem-submitted', { detail: createdProblem }));
+      }
+
       return {
         success: true,
         clusterId: problemId,
         isMerged: false,
-        domain: payload.domain
+        domain: payload.domain,
+        problem: createdProblem
       };
     } catch (error) {
       const apiMsg = error.response?.data?.message || error.message || 'Someone from your locality has already submitted this problem.';

@@ -43,11 +43,11 @@ export function getSupportedAudioMimeType() {
  * or overlapping suffix-prefix word sequences (fixes mobile Android repetition bug!).
  */
 export function mergeTranscriptWithOverlap(base, incoming) {
-  const b = (base || '').trim();
-  const inc = (incoming || '').trim();
+  if (!incoming || !incoming.trim()) return base || '';
+  if (!base || !base.trim()) return incoming || '';
 
-  if (!b) return inc;
-  if (!inc) return b;
+  const b = base.trim();
+  const inc = incoming.trim();
 
   const bLower = b.toLowerCase();
   const incLower = inc.toLowerCase();
@@ -538,12 +538,15 @@ export function useBhashiniVoice({ language = 'hi', speechCode = 'hi-IN' } = {})
 
   // Update transcript externally (e.g. typing or clearing)
   const updateTranscript = useCallback((val) => {
-    const nextVal = typeof val === 'function' ? val(transcript) : val;
-    baseTranscriptRef.current = (nextVal || '').trim();
     sessionFinalRef.current = '';
     setInterimTranscript('');
-    setTranscript(nextVal || '');
-  }, [transcript]);
+    setTranscript((prev) => {
+      const nextVal = typeof val === 'function' ? val(prev) : val;
+      const strVal = nextVal ?? '';
+      baseTranscriptRef.current = strVal;
+      return strVal;
+    });
+  }, []);
 
   // Reset transcript and audio state
   const reset = useCallback(() => {
@@ -562,6 +565,9 @@ export function useBhashiniVoice({ language = 'hi', speechCode = 'hi-IN' } = {})
 
   // Safe deduplicated full transcript
   const getFullTranscript = () => {
+    if (!interimTranscript || !interimTranscript.trim()) {
+      return transcript;
+    }
     return mergeTranscriptWithOverlap(transcript, interimTranscript);
   };
 

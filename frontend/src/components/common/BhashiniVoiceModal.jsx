@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { useAppState } from '../../context/StateContext';
 import { bhashiniApi } from '../../services/bhashiniApi';
 import { useBhashiniVoice } from '../../utils/useBhashiniVoice';
@@ -14,8 +15,14 @@ import {
   MapPin,
   FileText,
   AlertTriangle,
-  ArrowRight,
-  RotateCcw
+  RotateCcw,
+  User,
+  Phone,
+  Upload,
+  Video,
+  Film,
+  Image as ImageIcon,
+  Trash2
 } from 'lucide-react';
 
 // Speech code mapping for Indian languages with fallback to English
@@ -50,13 +57,86 @@ const LANGUAGE_SPEECH_MAP = {
   sa: { code: 'sa', name: 'Sanskrit (संस्कृतम्)', speechCode: 'sa-IN' }
 };
 
+const JHARKHAND_DISTRICTS = [
+  { id: 'bokaro', name: 'Bokaro', nameHi: 'बोकारो' },
+  { id: 'chatra', name: 'Chatra', nameHi: 'चतरा' },
+  { id: 'deoghar', name: 'Deoghar', nameHi: 'देवघर' },
+  { id: 'dhanbad', name: 'Dhanbad', nameHi: 'धनबाद' },
+  { id: 'dumka', name: 'Dumka', nameHi: 'दुमका' },
+  { id: 'east_singhbhum', name: 'East Singhbhum', nameHi: 'पूर्वी सिंहभूम' },
+  { id: 'garhwa', name: 'Garhwa', nameHi: 'गढ़वा' },
+  { id: 'giridih', name: 'Giridih', nameHi: 'गिरिडीह' },
+  { id: 'godda', name: 'Godda', nameHi: 'गोड्डा' },
+  { id: 'gumla', name: 'Gumla', nameHi: 'गुमला' },
+  { id: 'hazaribagh', name: 'Hazaribagh', nameHi: 'हजारीबाग' },
+  { id: 'jamtara', name: 'Jamtara', nameHi: 'जामताड़ा' },
+  { id: 'khunti', name: 'Khunti', nameHi: 'खूंटी' },
+  { id: 'koderma', name: 'Koderma', nameHi: 'कोडरमा' },
+  { id: 'latehar', name: 'Latehar', nameHi: 'लातेहार' },
+  { id: 'lohardaga', name: 'Lohardaga', nameHi: 'लोहरदगा' },
+  { id: 'pakur', name: 'Pakur', nameHi: 'पाकुड़' },
+  { id: 'palamu', name: 'Palamu', nameHi: 'पलामू' },
+  { id: 'ramgarh', name: 'Ramgarh', nameHi: 'रामगढ़' },
+  { id: 'ranchi', name: 'Ranchi', nameHi: 'राँची' },
+  { id: 'sahibganj', name: 'Sahibganj', nameHi: 'साहिबगंज' },
+  { id: 'saraikela_kharsawan', name: 'Saraikela Kharsawan', nameHi: 'सरायकेला खरसावां' },
+  { id: 'simdega', name: 'Simdega', nameHi: 'सिमडेगा' },
+  { id: 'west_singhbhum', name: 'West Singhbhum', nameHi: 'पश्चिमी सिंहभूम' }
+];
+
 export default function BhashiniVoiceModal() {
   const {
     isBhashiniModalOpen,
     setIsBhashiniModalOpen,
-    setIsSubmitModalOpen,
-    setPrefilledGrievanceData
+    districts,
+    submitCitizenProblem
   } = useAppState();
+
+  const currentUser = useSelector((state) => state.auth?.user);
+  const [userName, setUserName] = useState('');
+  const [userPhone, setUserPhone] = useState('');
+  const [selectedDistrict, setSelectedDistrict] = useState('Ranchi');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Evidence Attachments (Photo and Video)
+  const [evidenceImage, setEvidenceImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [evidenceVideo, setEvidenceVideo] = useState(null);
+  const [videoPreview, setVideoPreview] = useState(null);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Image size must be under 10MB');
+      return;
+    }
+    setEvidenceImage(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleVideoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 80 * 1024 * 1024) {
+      toast.error('Video size must be under 80MB');
+      return;
+    }
+    setEvidenceVideo(file);
+    setVideoPreview(URL.createObjectURL(file));
+  };
+
+  const removeImage = () => {
+    setEvidenceImage(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
+  };
+
+  const removeVideo = () => {
+    setEvidenceVideo(null);
+    if (videoPreview) URL.revokeObjectURL(videoPreview);
+    setVideoPreview(null);
+  };
 
   // Fetch language from cookie, if not selected fallback strictly to English
   const [activeLang, setActiveLang] = useState(() => {
@@ -94,6 +174,33 @@ export default function BhashiniVoiceModal() {
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [extractedData, setExtractedData] = useState(null);
+
+  const districtList = (districts && districts.length > 0) ? districts : JHARKHAND_DISTRICTS;
+
+  // Sync user info if authenticated
+  useEffect(() => {
+    if (currentUser) {
+      if (currentUser.name && !userName) setUserName(currentUser.name);
+      if (currentUser.phone && !userPhone) setUserPhone(currentUser.phone);
+    }
+  }, [currentUser]);
+
+  // Pre-select district if extracted by AI
+  useEffect(() => {
+    if (extractedData?.district) {
+      const match = districtList.find((d) => {
+        const name = typeof d === 'string' ? d : d.name;
+        const id = typeof d === 'string' ? d : d.id;
+        return (
+          name.toLowerCase() === extractedData.district.toLowerCase() ||
+          id.toLowerCase() === extractedData.district.toLowerCase()
+        );
+      });
+      if (match) {
+        setSelectedDistrict(typeof match === 'string' ? match : match.name);
+      }
+    }
+  }, [extractedData, districtList]);
 
   if (!isBhashiniModalOpen) return null;
 
@@ -192,30 +299,69 @@ export default function BhashiniVoiceModal() {
     }
   };
 
-  // Transfer extracted problem to Community Portal Form via Context
-  const handleSubmitToReportModal = () => {
-    const rawSpeech = fullTranscript.trim();
-    const cleanWords = rawSpeech ? rawSpeech.split(/\s+/) : [];
-    const defaultTitle = cleanWords.length > 0 
-      ? (cleanWords.length > 8 ? cleanWords.slice(0, 8).join(' ') + '...' : cleanWords.join(' '))
-      : 'Voice Reported Challenge';
-    const finalTitle = (extractedData?.title || '').trim() || (defaultTitle.charAt(0).toUpperCase() + defaultTitle.slice(1));
-    const finalDesc = (extractedData?.description || extractedData?.narrative || rawSpeech || 'Societal grievance reported via voice.').trim();
+  // Directly submit problem via submitCitizenProblem API without navigating to another form
+  const handleSubmitProblem = async () => {
+    if (!userName.trim()) {
+      toast.error('Please enter your name.');
+      return;
+    }
+    if (!userPhone.trim()) {
+      toast.error('Please enter your phone number.');
+      return;
+    }
+    const cleanPhone = userPhone.trim().replace(/\D/g, '');
+    if (cleanPhone.length < 10) {
+      toast.error('Please enter a valid 10-digit phone number.');
+      return;
+    }
 
-    setPrefilledGrievanceData({
-      title: finalTitle,
-      narrative: finalDesc,
-      description: finalDesc,
-      districtName: extractedData?.district || 'Ranchi',
-      district: extractedData?.district || 'Ranchi',
-      block: extractedData?.block || '',
-      panchayat: extractedData?.panchayat || '',
-      domain: extractedData?.domain || 'Others'
-    });
+    setIsSubmitting(true);
+    try {
+      const rawSpeech = fullTranscript.trim();
+      const cleanWords = rawSpeech ? rawSpeech.split(/\s+/) : [];
+      const defaultTitle = cleanWords.length > 0 
+        ? (cleanWords.length > 8 ? cleanWords.slice(0, 8).join(' ') + '...' : cleanWords.join(' '))
+        : 'Voice Reported Challenge';
+      const finalTitle = (extractedData?.title || '').trim() || (defaultTitle.charAt(0).toUpperCase() + defaultTitle.slice(1));
+      const finalDesc = (extractedData?.description || extractedData?.narrative || rawSpeech || 'Societal grievance reported via voice.').trim();
 
-    // Close voice modal (transfers directly to CommunityPortal form)
-    setIsBhashiniModalOpen(false);
-    toast.success('Problem details transferred to report form!');
+      const res = await submitCitizenProblem({
+        title: finalTitle,
+        narrative: finalDesc,
+        description: finalDesc,
+        district: selectedDistrict,
+        districtName: selectedDistrict,
+        block: extractedData?.block || '',
+        panchayat: extractedData?.panchayat || '',
+        state: 'Jharkhand',
+        name: userName.trim(),
+        phone: userPhone.trim(),
+        submitterType: 'Citizen',
+        urgency: extractedData?.urgency || 'High',
+        evidenceFile: evidenceImage,
+        videoFile: evidenceVideo
+      });
+
+      if (res && res.success) {
+        toast.success('Problem submitted successfully!');
+        if (res.problem) {
+          window.dispatchEvent(new CustomEvent('problem-submitted', { detail: res.problem }));
+        }
+        resetVoice();
+        setExtractedData(null);
+        setUserName(currentUser?.name || '');
+        setUserPhone(currentUser?.phone || '');
+        removeImage();
+        removeVideo();
+        setIsBhashiniModalOpen(false);
+      } else {
+        toast.error(res?.message || 'Failed to submit problem. Please try again.');
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err.message || 'An error occurred while submitting.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {
@@ -327,7 +473,7 @@ export default function BhashiniVoiceModal() {
               {(fullTranscript || audioBase64) && (
                 <button
                   type="button"
-                  onClick={() => { resetVoice(); setExtractedData(null); }}
+                  onClick={() => { resetVoice(); setExtractedData(null); removeImage(); removeVideo(); }}
                   className="text-[11px] text-slate-400 hover:text-rose-600 flex items-center gap-1 cursor-pointer"
                 >
                   <RotateCcw className="w-3 h-3" />
@@ -396,15 +542,185 @@ export default function BhashiniVoiceModal() {
                   {extractedData.description || extractedData.narrative}
                 </p>
               </div>
+
+              {/* Location & Submitter Details */}
+              <div className="pt-2 border-t border-emerald-200/60 space-y-3">
+                {/* Location Dropdown */}
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1 mb-1">
+                    <MapPin className="w-3 h-3 text-emerald-600" />
+                    Location (District)
+                  </label>
+                  <select
+                    value={selectedDistrict}
+                    onChange={(e) => setSelectedDistrict(e.target.value)}
+                    className="w-full text-xs p-2.5 rounded-xl border border-slate-300 text-slate-900 bg-white font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all shadow-xs cursor-pointer"
+                  >
+                    {districtList.map((d) => {
+                      const dName = typeof d === 'string' ? d : (d.name || d.id);
+                      const dLabel = typeof d === 'object' && d.nameHi ? `${d.name} (${d.nameHi})` : dName;
+                      return (
+                        <option key={typeof d === 'object' ? d.id || d.name : d} value={dName}>
+                          {dLabel}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                {/* Submitter Name and Phone */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1 mb-1">
+                      <User className="w-3 h-3 text-emerald-600" />
+                      Your Name
+                    </label>
+                    <input
+                      type="text"
+                      value={userName}
+                      onChange={(e) => setUserName(e.target.value)}
+                      placeholder="e.g. Ramesh Kumar"
+                      className="w-full text-xs p-2.5 rounded-xl border border-slate-300 text-slate-900 bg-white placeholder:text-slate-400 font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all shadow-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1 mb-1">
+                      <Phone className="w-3 h-3 text-emerald-600" />
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={userPhone}
+                      onChange={(e) => setUserPhone(e.target.value)}
+                      placeholder="e.g. 9876543210"
+                      className="w-full text-xs p-2.5 rounded-xl border border-slate-300 text-slate-900 bg-white placeholder:text-slate-400 font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all shadow-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Field Evidence Attachments (Photo & Video - Optional) */}
+                <div className="space-y-2 pt-2 border-t border-emerald-200/60">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1">
+                    <Upload className="w-3 h-3 text-emerald-600" />
+                    Field Evidence Attachments (Optional)
+                  </label>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* 1. Field Photo Box */}
+                    <div className="bg-white/80 border border-emerald-100 rounded-xl p-3 space-y-2 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-700 flex items-center space-x-1.5">
+                          <ImageIcon className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Attach Photo</span>
+                        </span>
+                        {evidenceImage && (
+                          <button
+                            type="button"
+                            onClick={removeImage}
+                            className="text-[11px] text-rose-600 hover:underline font-bold flex items-center gap-0.5 cursor-pointer"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>Remove</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {!imagePreview ? (
+                        <label className="flex flex-col items-center justify-center p-3 rounded-lg border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50 text-slate-600 text-xs font-semibold cursor-pointer transition-colors text-center space-y-1">
+                          <Upload className="w-4 h-4 text-emerald-600" />
+                          <span className="text-[11px]">Select image (Max 10MB)</span>
+                          <span className="text-[9px] text-slate-400">JPG, PNG, WebP</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageChange}
+                            className="hidden"
+                          />
+                        </label>
+                      ) : (
+                        <div className="flex items-center space-x-2.5 bg-slate-50 p-2 rounded-lg border border-slate-200">
+                          <img
+                            src={imagePreview}
+                            alt="Evidence Preview"
+                            className="w-12 h-12 object-cover rounded-md border border-slate-200 flex-shrink-0"
+                          />
+                          <div className="min-w-0 flex-1 text-xs">
+                            <p className="font-bold text-slate-800 truncate text-[11px]">{evidenceImage?.name}</p>
+                            <span className="text-[10px] text-slate-400">{(evidenceImage?.size / (1024 * 1024)).toFixed(2)} MB</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 2. Field Video Box */}
+                    <div className="bg-white/80 border border-emerald-100 rounded-xl p-3 space-y-2 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-700 flex items-center space-x-1.5">
+                          <Video className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>Attach Video</span>
+                        </span>
+                        {evidenceVideo && (
+                          <button
+                            type="button"
+                            onClick={removeVideo}
+                            className="text-[11px] text-rose-600 hover:underline font-bold flex items-center gap-0.5 cursor-pointer"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>Remove</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {!videoPreview ? (
+                        <label className="flex flex-col items-center justify-center p-3 rounded-lg border-2 border-dashed border-slate-300 hover:border-indigo-500 bg-slate-50 text-slate-600 text-xs font-semibold cursor-pointer transition-colors text-center space-y-1">
+                          <Film className="w-4 h-4 text-indigo-600" />
+                          <span className="text-[11px]">Select video (Max 80MB)</span>
+                          <span className="text-[9px] text-slate-400">MP4, WebM, MOV</span>
+                          <input
+                            type="file"
+                            accept="video/*,video/mp4,video/webm,video/quicktime"
+                            onChange={handleVideoChange}
+                            className="hidden"
+                          />
+                        </label>
+                      ) : (
+                        <div className="space-y-1.5 bg-slate-50 p-2 rounded-lg border border-slate-200">
+                          <video
+                            src={videoPreview}
+                            controls
+                            className="w-full h-20 object-cover rounded-md border border-slate-200 bg-black"
+                          />
+                          <div className="flex items-center justify-between text-xs px-0.5">
+                            <span className="font-bold text-slate-800 truncate text-[10px] max-w-[140px]">{evidenceVideo?.name}</span>
+                            <span className="text-[10px] text-slate-400">{(evidenceVideo?.size / (1024 * 1024)).toFixed(2)} MB</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Submit Problem Button */}
               <div className="pt-3 border-t border-emerald-200/60 flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={handleSubmitToReportModal}
-                  className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/20 hover:shadow-lg transition-all flex items-center justify-center space-x-2 cursor-pointer"
+                  onClick={handleSubmitProblem}
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/20 hover:shadow-lg transition-all flex items-center justify-center space-x-2 cursor-pointer"
                 >
-                  <span>Submit to Problem Form</span>
-                  <ArrowRight className="w-4 h-4" />
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Submitting Problem...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4 stroke-[3]" />
+                      <span>Submit Problem</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>

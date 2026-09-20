@@ -142,11 +142,30 @@ export default function CommunityPortal() {
 
   // Automatically fetch problems and notifications associated with the authenticated user
   const loadUserProblems = async () => {
-    if (!isAuthenticated) return;
     try {
       setLoadingMyProblems(true);
-      const data = await problemApi.getMyProblems();
-      setMyProblems(data.problems || []);
+      if (isAuthenticated) {
+        const data = await problemApi.getMyProblems();
+        const serverProblems = data.problems || [];
+        setMyProblems((prev) => {
+          const combined = [...serverProblems];
+          for (const p of prev) {
+            const id = p._id || p.id;
+            if (!combined.some(cp => (cp._id && cp._id === id) || (cp.id && cp.id === id))) {
+              combined.unshift(p);
+            }
+          }
+          return combined;
+        });
+      } else {
+        // Load recent problems from localStorage for guest / citizen
+        try {
+          const cached = localStorage.getItem('jharkhand_recent_problems');
+          if (cached) {
+            setMyProblems(JSON.parse(cached));
+          }
+        } catch (err) {}
+      }
     } catch (err) {
       console.error('Error fetching user reported problems:', err);
     } finally {
@@ -154,10 +173,32 @@ export default function CommunityPortal() {
     }
   };
 
+  // Listen for real-time problem submissions from Bhashini Voice or modal
   useEffect(() => {
-    if (isAuthenticated) {
-      loadUserProblems();
+    const handleProblemSubmitted = (e) => {
+      const newProb = e.detail;
+      if (newProb) {
+        setMyProblems((prev) => {
+          const id = newProb._id || newProb.id;
+          const exists = prev.some((p) => (p._id && p._id === id) || (p.id && p.id === id));
+          if (exists) return prev;
+          const updated = [newProb, ...prev];
+          try {
+            localStorage.setItem('jharkhand_recent_problems', JSON.stringify(updated.slice(0, 20)));
+          } catch (err) {}
+          return updated;
+        });
+      }
+    };
 
+    window.addEventListener('problem-submitted', handleProblemSubmitted);
+    return () => window.removeEventListener('problem-submitted', handleProblemSubmitted);
+  }, []);
+
+  useEffect(() => {
+    loadUserProblems();
+
+    if (isAuthenticated) {
       // Load user notifications
       async function loadUserNotifications() {
         try {
@@ -172,7 +213,6 @@ export default function CommunityPortal() {
       }
       loadUserNotifications();
     } else {
-      setMyProblems([]);
       setUnreadCount(0);
     }
   }, [isAuthenticated, authUser]);
@@ -314,8 +354,15 @@ export default function CommunityPortal() {
 
       toast.success(`Problem reported!`);
       
-      // Add directly to user's problems list
-      setMyProblems(prev => [newProblem, ...prev]);
+      // Add directly to user's problems list and localStorage
+      setMyProblems(prev => {
+        const updated = [newProblem, ...prev];
+        try {
+          localStorage.setItem('jharkhand_recent_problems', JSON.stringify(updated.slice(0, 20)));
+        } catch (e) {}
+        return updated;
+      });
+      window.dispatchEvent(new CustomEvent('problem-submitted', { detail: newProblem }));
 
       // Reset Form
       setFormData({
@@ -689,7 +736,7 @@ export default function CommunityPortal() {
         </div>
 
         {/* Not Authenticated Prompt */}
-        {!isAuthenticated ? (
+        {!isAuthenticated && myProblems.length === 0 ? (
           <div className="p-8 bg-white border border-slate-200 rounded-3xl text-center space-y-4 shadow-sm">
             <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
               <User className="w-6 h-6" />
@@ -708,19 +755,29 @@ export default function CommunityPortal() {
               <span>Login to View My Challenges</span>
             </Link>
           </div>
-        ) : loadingMyProblems ? (
+        ) : loadingMyProblems && myProblems.length === 0 ? (
           <div className="py-16 flex flex-col items-center justify-center space-y-3">
             <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
             <span className="text-xs font-bold text-slate-600 font-mono">Loading your reported challenges...</span>
           </div>
         ) : myProblems.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            {!isAuthenticated && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 sm:p-4 flex items-center justify-between text-xs text-emerald-900">
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span>Showing challenges reported in this session. <Link to="/auth" className="underline font-bold hover:text-emerald-950">Sign in</Link> to permanently track and sync them across all devices.</span>
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {myProblems.map((p) => {
               const problemId = p._id || p.id;
               const isSolved = p.resolutionStatus === 'solved' || p.status === 'validated';
               const isInProgress = p.status === 'in_progress' || p.status === 'allocated' || p.status === 'funded';
               const Icon = DOMAIN_ICONS[p.domain] || Droplets;
               const imageUrl = p.evidence?.[0]?.url || p.evidenceUrl || '';
+              const ticket = p.ticketId || (p._id ? p._id.slice(-6).toUpperCase() : p.id || 'PRB');
 
               return (
                 <div
@@ -836,6 +893,7 @@ export default function CommunityPortal() {
                 </div>
               );
             })}
+            </div>
           </div>
         ) : (
           <div className="p-8 bg-white border border-slate-200 rounded-3xl text-center space-y-3 shadow-sm">
